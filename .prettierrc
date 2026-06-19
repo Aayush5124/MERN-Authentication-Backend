@@ -1,0 +1,5 @@
+{
+    "singlequote"= false
+    "bracket"=true
+    "editor.formatOnSave" = true
+}
