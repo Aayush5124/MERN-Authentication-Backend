@@ -1,1 +1,1 @@
-# This is the complete code and project by CAC.
+A secure MERN Authentication Backend built with Node.js, Express.js, MongoDB Atlas, JWT, bcrypt, Multer, and Cloudinary. It features user registration, login/logout, refresh token authentication, protected routes, password management, profile updates, and secure image uploads, following industry-standard authentication practices.
