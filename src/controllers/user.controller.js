@@ -1,8 +1,8 @@
-import asyncHandler from "../utils/asynchandler.js";
-import ApiError from "../utils/Apierror.js";
-import User from "../models/user.model.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
-import ApiResponse from "../utils/Apiresponse.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 // generate access token and refresh token
 
@@ -112,7 +112,8 @@ if (
     req.files &&
     Array.isArray(req.files.coverImage) &&
     req.files.coverImage.length > 0
-) {
+)
+ {
     coverImageLocalPath =
         req.files.coverImage[0].path;
 }
@@ -512,13 +513,13 @@ const updateAccountDetails =asyncHandler(async (req, res) => {
     // from request body
 
     const {
-        fullName,
+        fullname,
         email
     } = req.body;
 
     // validation
 
-    if (!fullName || !email) {
+    if (!fullname || !email) {
 
         throw new ApiError(
             400,
@@ -533,7 +534,7 @@ const updateAccountDetails =asyncHandler(async (req, res) => {
             req.user?._id,
             {
                 $set: {
-                    fullName,
+                    fullname,
                     email: email
                 }
             },
@@ -621,8 +622,7 @@ const updateUserAvatar =asyncHandler(async (req, res) => {
 
 // update cover image controller
 
-const updateUserCoverImage =
-asyncHandler(async (req, res) => {
+const updateUserCoverImage =asyncHandler(async (req, res) => {
 
     // get cover image path from multer
 
@@ -685,5 +685,129 @@ asyncHandler(async (req, res) => {
         );
 });
 
+// get channel profile
 
-export { registerUser , loginUser , logoutuser ,refreshAccessToken , changeCurrentPassword , updateAccountDetails , updateUserAvatar , updateUserCoverImage}
+const getUserChannelProfile =asyncHandler(async (req, res) => {
+
+    // get username from params
+
+    const { username } = req.params;
+
+    // check username exists
+
+    if (!username?.trim()) {
+
+        throw new ApiError(
+            400,
+            "username is missing"
+        );
+    }
+
+    // aggregation pipeline
+
+    const channel =
+        await User.aggregate([
+            {
+                $match: {
+                    username:
+                        username.toLowerCase()
+                }
+            },
+
+            // get all subscribers of channel
+
+            {
+                $lookup: {
+                    from: "subscriptions",
+                    localField: "_id",
+                    foreignField: "channel",
+                    as: "subscribers"
+                }
+            },
+
+            // get all channels subscribed by user
+
+            {
+                $lookup: {
+                    from: "subscriptions",
+                    localField: "_id",
+                    foreignField: "subscriber",
+                    as: "subscribedTo"
+                }
+            },
+
+            // add custom fields
+
+            {
+                $addFields: {
+
+                    // total subscribers
+
+                    subscribersCount: {
+                        $size: "$subscribers"
+                    },
+
+                    // total channels subscribed
+
+                    channelsSubscribedToCount: {
+                        $size: "$subscribedTo"
+                    },
+
+                    // check current user subscribed or not
+
+                    isSubscribed: {
+                        $cond: {
+                            if: {
+                                $in: [
+                                    req.user?._id,
+                                    "$subscribers.subscriber"
+                                ]
+                            },
+                            then: true,
+                            else: false
+                        }
+                    }
+                }
+            },
+
+            // select only required fields
+
+            {
+                $project: {
+                    fullname: 1,
+                    username: 1,
+                    subscribersCount: 1,
+                    channelsSubscribedToCount: 1,
+                    isSubscribed: 1,
+                    avatar: 1,
+                    coverImage: 1,
+                    email: 1
+                }
+            }
+        ]);
+
+    // channel not found
+
+    if (!channel?.length) {
+
+        throw new ApiError(
+            404,
+            "channel does not exist"
+        );
+    }
+
+    // return response
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                channel[0],
+                "User channel fetched successfully"
+            )
+        );
+});
+
+
+export { registerUser , loginUser , logoutuser ,refreshAccessToken , changeCurrentPassword , updateAccountDetails , updateUserAvatar , updateUserCoverImage ,getUserChannelProfile}

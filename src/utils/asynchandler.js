@@ -6,8 +6,8 @@ const asyncHandler = (requestHandler) => {
     };
 };
 
+export { asyncHandler };
 export default asyncHandler;
-
 
 
 // this is a async handler function that will be used to handle all the async functions in the controllers. It will catch the errors and send the response to the client. This will help us to avoid writing try-catch block in every controller function.

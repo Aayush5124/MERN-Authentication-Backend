@@ -30,6 +30,7 @@ class ApiResponse {
 
 // export class
 
+export { ApiResponse };
 export default ApiResponse;
 // its just a another class for the send() in the api resonsose if i need to use it we do it liek ../apirespose/send()  as api resonse work of my is already done.
 
